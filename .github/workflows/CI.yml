@@ -183,16 +183,10 @@ jobs:
           mkdir -p artifacts/xenia_edge/usr/bin
           # Copy directories (optimized_settings, game_patches, etc.)
           find build/bin/Linux/Release -maxdepth 1 -type d ! -name Release -exec cp -r {} artifacts/xenia_edge/usr/bin/ \;
-          # Copy any additional runtime files if needed (currently just directories are copied)
 
           # Run linuxdeploy with Qt plugin to deploy all Qt dependencies and create AppImage
           export EXTRA_PLATFORM_PLUGINS="libqwayland.so"
-          ~/linuxdeploy/linuxdeploy --appdir artifacts/xenia_edge \
-            --executable $binary \
-            --desktop-file assets/xenia_edge.desktop \
-            --icon-file assets/icon/256.png \
-            --plugin qt \
-            --output appimage
+          ~/linuxdeploy/linuxdeploy --appdir artifacts/xenia_edge             --executable $binary             --desktop-file assets/xenia_edge.desktop             --icon-file assets/icon/256.png             --plugin qt             --output appimage
 
           # linuxdeploy creates the AppImage in the current directory
           # Find and rename it to a standard name
@@ -317,18 +311,20 @@ jobs:
           python xenia-build.py fetchdata
 
       - name: Build
-        run: python xenia-build.py build --config=Release --target=xenia-app
+        run: python xenia-build.py build --config=Release --target=xenia-edge-libretro
+
       - name: Prepare artifacts
         id: prepare_artifacts
         run: |
-          $binary = 'build\bin\Windows\Release\xenia_edge.exe'
+          $binary = 'build\bin\Windows\Release\xenia_edge_libretro.dll'
           if ((get-item $binary).Length -le 100000) {
             echo "::error::$binary is too small."
+            exit 1
           }
-          robocopy . build\bin\Windows\Release LICENSE /r:0 /w:0
-          # Copy all files and directories (Qt DLLs, plugins, etc.) excluding build artifacts
-          robocopy build\bin\Windows\Release artifacts\xenia_edge /MIR /r:0 /w:0 /XF *.lib *.idb *.exp /XD generic iconengines imageformats networkinformation styles tls
-          If ($LastExitCode -le 7) { echo "LastExitCode = $LastExitCode";$LastExitCode = 0 }
+          mkdir artifacts\xenia_edge -Force
+          copy-item $binary -Destination artifacts\xenia_edge\
+          copy-item LICENSE -Destination artifacts\xenia_edge\
+
       - name: Upload xenia edge artifacts
         if: steps.prepare_artifacts.outcome == 'success'
         uses: actions/upload-artifact@main
@@ -373,5 +369,4 @@ jobs:
 
           # Create release
           tag=${GITHUB_SHA::7}
-          gh release create $tag xenia_edge_linux.AppImage xenia_edge_windows.zip \
-            --target $GITHUB_SHA -t "xenia_edge" --generate-notes
+          gh release create $tag xenia_edge_linux.AppImage xenia_edge_windows.zip             --target $GITHUB_SHA -t "xenia_edge" --generate-notes
