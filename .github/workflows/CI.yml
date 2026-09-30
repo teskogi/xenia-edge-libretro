@@ -359,14 +359,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          # Create zips
           cd linux_artifacts
-          # For Linux, just rename the AppImage (no need to zip a single file)
           mv xenia_edge.AppImage ../xenia_edge_linux.AppImage
           cd ../windows_artifacts
-          7z a ../xenia_edge_windows.zip * -xr!'*.pdb' -mx9 -bb3
+          mv xenia_edge_libretro.dll ../xenia_edge_windows_libretro.dll
           cd ..
 
-          # Create release
           tag=${GITHUB_SHA::7}
-          gh release create $tag xenia_edge_linux.AppImage xenia_edge_windows.zip             --target $GITHUB_SHA -t "xenia_edge" --generate-notes
+          gh release create $tag xenia_edge_linux.AppImage xenia_edge_windows_libretro.dll \
+            --target $GITHUB_SHA -t "xenia_edge" --generate-notes
